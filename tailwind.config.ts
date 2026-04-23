@@ -57,6 +57,10 @@ export default {
           border: "hsl(var(--sidebar-border))",
           ring: "hsl(var(--sidebar-ring))",
         },
+        steel: {
+          DEFAULT: "hsl(var(--steel))",
+          dark: "hsl(var(--steel-dark))",
+        },
       },
       borderRadius: {
         lg: "var(--radius)",
@@ -67,12 +71,6 @@ export default {
         display: ['Space Grotesk', 'sans-serif'],
         sans: ['Inter', 'sans-serif'],
       },
-      colors: {
-        steel: {
-          DEFAULT: "hsl(var(--steel))",
-          dark: "hsl(var(--steel-dark))",
-        },
-      } as any,
       keyframes: {
         "accordion-down": { from: { height: "0" }, to: { height: "var(--radix-accordion-content-height)" } },
         "accordion-up": { from: { height: "var(--radix-accordion-content-height)" }, to: { height: "0" } },
