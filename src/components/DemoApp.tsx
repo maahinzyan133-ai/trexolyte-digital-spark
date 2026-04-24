@@ -1,67 +1,99 @@
 import { useState } from "react";
-import medicalImg from "@/assets/medical-app-1.jpeg";
-import pfcImg from "@/assets/project-pfc.png";
-import mccImg from "@/assets/project-mcc.png";
-import nmrImg from "@/assets/project-nmr.png";
-import swastiImg from "@/assets/project-swasti.png";
+import medical1 from "@/assets/medical-app-1.jpeg";
+import medical2 from "@/assets/medical-app-2.jpeg";
+import medical3 from "@/assets/medical-app-3.jpeg";
+import medical4 from "@/assets/medical-app-4.jpeg";
+import medical5 from "@/assets/medical-app-5.jpeg";
+import pfc1 from "@/assets/project-pfc.png";
+import pfc2 from "@/assets/project-pfc-2.png";
+import pfc3 from "@/assets/project-pfc-3.png";
+import mcc1 from "@/assets/project-mcc.png";
+import mcc2 from "@/assets/project-mcc-2.png";
+import mcc3 from "@/assets/project-mcc-3.png";
+import nmr1 from "@/assets/project-nmr.png";
+import nmr2 from "@/assets/project-nmr-2.png";
+import swasti1 from "@/assets/project-swasti.png";
+import swasti2 from "@/assets/project-swasti-2.png";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ArrowRight, CheckCircle2, Filter, ExternalLink } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { ArrowRight, CheckCircle2, Filter, ExternalLink, Layers } from "lucide-react";
 
-type Category = "all" | "healthcare" | "ecommerce" | "education" | "automotive";
+type Industry = "all" | "healthcare" | "ecommerce" | "education" | "automotive";
+type ProjectType = "all" | "mobile" | "web" | "ecommerce-app" | "education-app";
 
 type Project = {
-  src: string;
+  cover: string;
+  gallery: string[];
   name: string;
   tagline: string;
-  category: Exclude<Category, "all">;
+  industry: Exclude<Industry, "all">;
+  type: Exclude<ProjectType, "all">;
   tags: string[];
 };
 
 const projects: Project[] = [
   {
-    src: medicalImg,
+    cover: medical1,
+    gallery: [medical1, medical2, medical3, medical4, medical5],
     name: "MediCare Plus",
     tagline: "Telemedicine, pharmacy & lab booking app",
-    category: "healthcare",
+    industry: "healthcare",
+    type: "mobile",
     tags: ["Mobile App", "Telemedicine", "E-Pharmacy"],
   },
   {
-    src: swastiImg,
+    cover: swasti1,
+    gallery: [swasti1, swasti2],
     name: "New Swasti Diagnostic",
     tagline: "Diagnostic center with online appointments",
-    category: "healthcare",
+    industry: "healthcare",
+    type: "web",
     tags: ["Web", "Booking", "WhatsApp"],
   },
   {
-    src: pfcImg,
+    cover: pfc1,
+    gallery: [pfc1, pfc2, pfc3],
     name: "PFC — Pure Fried Chicken",
     tagline: "Restaurant ordering & cart with WhatsApp checkout",
-    category: "ecommerce",
+    industry: "ecommerce",
+    type: "ecommerce-app",
     tags: ["Web", "Cart", "Food Delivery"],
   },
   {
-    src: mccImg,
+    cover: mcc1,
+    gallery: [mcc1, mcc2, mcc3],
     name: "Modern Computer Centre",
     tagline: "NBCE certified institute — courses & admissions",
-    category: "education",
+    industry: "education",
+    type: "education-app",
     tags: ["Web", "LMS", "Admissions"],
   },
   {
-    src: nmrImg,
+    cover: nmr1,
+    gallery: [nmr1, nmr2],
     name: "NMR Motors",
     tagline: "Pre-owned car dealership with inventory search",
-    category: "automotive",
+    industry: "automotive",
+    type: "web",
     tags: ["Web", "Catalog", "Lead Gen"],
   },
 ];
 
-const categories: { value: Category; label: string }[] = [
+const industries: { value: Industry; label: string }[] = [
   { value: "all", label: "All Industries" },
   { value: "healthcare", label: "Healthcare" },
   { value: "ecommerce", label: "E-commerce / Food" },
   { value: "education", label: "Education" },
   { value: "automotive", label: "Automotive" },
+];
+
+const types: { value: ProjectType; label: string }[] = [
+  { value: "all", label: "All Project Types" },
+  { value: "mobile", label: "Mobile App" },
+  { value: "web", label: "Web" },
+  { value: "ecommerce-app", label: "E-commerce" },
+  { value: "education-app", label: "Education" },
 ];
 
 const features = [
@@ -74,8 +106,13 @@ const features = [
 ];
 
 export const DemoApp = () => {
-  const [filter, setFilter] = useState<Category>("all");
-  const visible = filter === "all" ? projects : projects.filter((p) => p.category === filter);
+  const [industry, setIndustry] = useState<Industry>("all");
+  const [type, setType] = useState<ProjectType>("all");
+  const [active, setActive] = useState<Project | null>(null);
+
+  const visible = projects.filter(
+    (p) => (industry === "all" || p.industry === industry) && (type === "all" || p.type === type),
+  );
 
   return (
     <section id="demo" className="py-16 md:py-24 relative overflow-hidden">
@@ -89,21 +126,33 @@ export const DemoApp = () => {
             Real Projects, <span className="text-gradient">Real Results</span>
           </h2>
           <p className="text-sm md:text-base text-muted-foreground">
-            A glimpse into the digital products we've crafted for clients across healthcare, retail, education and automotive industries.
+            Browse digital products we've crafted across healthcare, retail, education and automotive industries. Tap any project to see all screens.
           </p>
         </div>
 
-        <div className="flex justify-center mb-8 md:mb-10">
-          <div className="flex items-center gap-2 sm:gap-3 p-2 sm:pl-4 rounded-full bg-card border border-border shadow-card w-full max-w-sm sm:w-auto">
-            <Filter className="h-4 w-4 text-accent shrink-0 ml-2 sm:ml-0" />
-            <span className="text-xs sm:text-sm text-muted-foreground hidden sm:inline">Filter by industry:</span>
-            <Select value={filter} onValueChange={(v) => setFilter(v as Category)}>
-              <SelectTrigger className="flex-1 sm:w-[200px] rounded-full border-0 bg-secondary text-xs sm:text-sm">
+        <div className="flex flex-col sm:flex-row justify-center items-stretch sm:items-center gap-3 mb-8 md:mb-10 max-w-2xl mx-auto">
+          <div className="flex items-center gap-2 p-2 pl-3 rounded-full bg-card border border-border shadow-card flex-1">
+            <Filter className="h-4 w-4 text-accent shrink-0" />
+            <Select value={industry} onValueChange={(v) => setIndustry(v as Industry)}>
+              <SelectTrigger className="flex-1 rounded-full border-0 bg-secondary text-xs sm:text-sm">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                {categories.map((c) => (
+                {industries.map((c) => (
                   <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="flex items-center gap-2 p-2 pl-3 rounded-full bg-card border border-border shadow-card flex-1">
+            <Layers className="h-4 w-4 text-accent shrink-0" />
+            <Select value={type} onValueChange={(v) => setType(v as ProjectType)}>
+              <SelectTrigger className="flex-1 rounded-full border-0 bg-secondary text-xs sm:text-sm">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {types.map((t) => (
+                  <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>
                 ))}
               </SelectContent>
             </Select>
@@ -112,18 +161,22 @@ export const DemoApp = () => {
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 md:gap-6 mb-12 md:mb-16 min-h-[200px]">
           {visible.map((p, i) => (
-            <article
+            <button
               key={p.name}
-              className="group relative rounded-2xl overflow-hidden bg-card border border-border shadow-card hover:shadow-glow transition-smooth"
+              onClick={() => setActive(p)}
+              className="group relative text-left rounded-2xl overflow-hidden bg-card border border-border shadow-card hover:shadow-glow transition-smooth focus:outline-none focus:ring-2 focus:ring-primary"
               style={{ animation: `fade-up 0.6s ${i * 0.08}s both` }}
             >
-              <div className="aspect-[16/10] overflow-hidden bg-secondary">
+              <div className="aspect-[16/10] overflow-hidden bg-secondary relative">
                 <img
-                  src={p.src}
+                  src={p.cover}
                   alt={`${p.name} — ${p.tagline}`}
                   className="w-full h-full object-cover object-top group-hover:scale-105 transition-smooth duration-700"
                   loading="lazy"
                 />
+                <div className="absolute top-2 right-2 text-[10px] md:text-xs px-2 py-1 rounded-full bg-background/80 backdrop-blur border border-border">
+                  {p.gallery.length} screens
+                </div>
               </div>
               <div className="p-4 md:p-5">
                 <div className="flex items-start justify-between gap-2 mb-2">
@@ -139,10 +192,10 @@ export const DemoApp = () => {
                   ))}
                 </div>
               </div>
-            </article>
+            </button>
           ))}
           {visible.length === 0 && (
-            <div className="col-span-full text-center text-muted-foreground py-12">No projects in this industry yet.</div>
+            <div className="col-span-full text-center text-muted-foreground py-12">No projects match these filters.</div>
           )}
         </div>
 
@@ -160,6 +213,40 @@ export const DemoApp = () => {
           </div>
         </div>
       </div>
+
+      <Dialog open={!!active} onOpenChange={(o) => !o && setActive(null)}>
+        <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto">
+          {active && (
+            <>
+              <DialogHeader>
+                <DialogTitle className="font-display text-2xl">{active.name}</DialogTitle>
+                <DialogDescription>{active.tagline}</DialogDescription>
+              </DialogHeader>
+              <div className="flex flex-wrap gap-1.5 mb-2">
+                {active.tags.map((t) => (
+                  <span key={t} className="text-xs px-2 py-1 rounded-full bg-primary/10 text-primary-glow border border-primary/20">
+                    {t}
+                  </span>
+                ))}
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                {active.gallery.map((src, i) => (
+                  <div key={i} className="rounded-xl overflow-hidden border border-border bg-secondary">
+                    <img src={src} alt={`${active.name} screen ${i + 1}`} className="w-full h-auto block" loading="lazy" />
+                  </div>
+                ))}
+              </div>
+              <div className="flex justify-center pt-2">
+                <Button variant="hero" asChild>
+                  <a href="#booking" onClick={() => setActive(null)}>
+                    Build something similar <ArrowRight />
+                  </a>
+                </Button>
+              </div>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
     </section>
   );
 };
