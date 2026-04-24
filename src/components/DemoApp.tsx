@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import medical1 from "@/assets/medical-app-1.jpeg";
 import medical2 from "@/assets/medical-app-2.jpeg";
 import medical3 from "@/assets/medical-app-3.jpeg";
@@ -17,10 +17,21 @@ import swasti2 from "@/assets/project-swasti-2.png";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
-import { ArrowRight, CheckCircle2, Filter, ExternalLink, Layers } from "lucide-react";
+import {
+  ArrowRight,
+  CheckCircle2,
+  Filter,
+  ExternalLink,
+  Layers,
+  ArrowUpDown,
+  X,
+  ChevronLeft,
+  ChevronRight,
+} from "lucide-react";
 
 type Industry = "all" | "healthcare" | "ecommerce" | "education" | "automotive";
 type ProjectType = "all" | "mobile" | "web" | "ecommerce-app" | "education-app";
+type SortKey = "newest" | "popular" | "az";
 
 type Project = {
   cover: string;
@@ -30,6 +41,8 @@ type Project = {
   industry: Exclude<Industry, "all">;
   type: Exclude<ProjectType, "all">;
   tags: string[];
+  year: number;
+  popularity: number;
 };
 
 const projects: Project[] = [
@@ -41,6 +54,8 @@ const projects: Project[] = [
     industry: "healthcare",
     type: "mobile",
     tags: ["Mobile App", "Telemedicine", "E-Pharmacy"],
+    year: 2026,
+    popularity: 98,
   },
   {
     cover: swasti1,
@@ -50,6 +65,8 @@ const projects: Project[] = [
     industry: "healthcare",
     type: "web",
     tags: ["Web", "Booking", "WhatsApp"],
+    year: 2025,
+    popularity: 86,
   },
   {
     cover: pfc1,
@@ -59,6 +76,8 @@ const projects: Project[] = [
     industry: "ecommerce",
     type: "ecommerce-app",
     tags: ["Web", "Cart", "Food Delivery"],
+    year: 2025,
+    popularity: 92,
   },
   {
     cover: mcc1,
@@ -68,6 +87,8 @@ const projects: Project[] = [
     industry: "education",
     type: "education-app",
     tags: ["Web", "LMS", "Admissions"],
+    year: 2024,
+    popularity: 78,
   },
   {
     cover: nmr1,
@@ -77,6 +98,8 @@ const projects: Project[] = [
     industry: "automotive",
     type: "web",
     tags: ["Web", "Catalog", "Lead Gen"],
+    year: 2024,
+    popularity: 71,
   },
 ];
 
@@ -96,6 +119,12 @@ const types: { value: ProjectType; label: string }[] = [
   { value: "education-app", label: "Education" },
 ];
 
+const sorts: { value: SortKey; label: string }[] = [
+  { value: "newest", label: "Newest" },
+  { value: "popular", label: "Popular" },
+  { value: "az", label: "A–Z" },
+];
+
 const features = [
   "Custom web & mobile app development",
   "Online booking & appointment systems",
@@ -105,14 +134,77 @@ const features = [
   "Mobile-first responsive design",
 ];
 
+const PAGE_SIZE = 3;
+
+const labelOf = <T extends string>(arr: { value: T; label: string }[], v: T) =>
+  arr.find((x) => x.value === v)?.label ?? "";
+
 export const DemoApp = () => {
   const [industry, setIndustry] = useState<Industry>("all");
   const [type, setType] = useState<ProjectType>("all");
+  const [sort, setSort] = useState<SortKey>("newest");
+  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
   const [active, setActive] = useState<Project | null>(null);
+  const [activeIndex, setActiveIndex] = useState(0);
+  const [lightbox, setLightbox] = useState(false);
 
-  const visible = projects.filter(
-    (p) => (industry === "all" || p.industry === industry) && (type === "all" || p.type === type),
-  );
+  const filtersActive = industry !== "all" || type !== "all";
+
+  const filtered = useMemo(() => {
+    const list = projects.filter(
+      (p) => (industry === "all" || p.industry === industry) && (type === "all" || p.type === type),
+    );
+    const sorted = [...list];
+    if (sort === "newest") sorted.sort((a, b) => b.year - a.year);
+    if (sort === "popular") sorted.sort((a, b) => b.popularity - a.popularity);
+    if (sort === "az") sorted.sort((a, b) => a.name.localeCompare(b.name));
+    return sorted;
+  }, [industry, type, sort]);
+
+  // Reset pagination when filters/sort change
+  useEffect(() => {
+    setVisibleCount(PAGE_SIZE);
+  }, [industry, type, sort]);
+
+  const visible = filtered.slice(0, visibleCount);
+  const hasMore = visibleCount < filtered.length;
+
+  const clearFilters = () => {
+    setIndustry("all");
+    setType("all");
+  };
+
+  const openProject = (p: Project) => {
+    setActive(p);
+    setActiveIndex(0);
+    setLightbox(false);
+  };
+
+  const next = useCallback(() => {
+    if (!active) return;
+    setActiveIndex((i) => (i + 1) % active.gallery.length);
+  }, [active]);
+
+  const prev = useCallback(() => {
+    if (!active) return;
+    setActiveIndex((i) => (i - 1 + active.gallery.length) % active.gallery.length);
+  }, [active]);
+
+  // Keyboard nav (modal + lightbox)
+  useEffect(() => {
+    if (!active) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "ArrowRight") { e.preventDefault(); next(); }
+      else if (e.key === "ArrowLeft") { e.preventDefault(); prev(); }
+      else if (e.key === "Escape" && lightbox) { e.preventDefault(); setLightbox(false); }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [active, lightbox, next, prev]);
+
+  const summaryParts: string[] = [];
+  if (industry !== "all") summaryParts.push(labelOf(industries, industry));
+  if (type !== "all") summaryParts.push(labelOf(types, type));
 
   return (
     <section id="demo" className="py-16 md:py-24 relative overflow-hidden">
@@ -130,41 +222,78 @@ export const DemoApp = () => {
           </p>
         </div>
 
-        <div className="flex flex-col sm:flex-row justify-center items-stretch sm:items-center gap-3 mb-8 md:mb-10 max-w-2xl mx-auto">
-          <div className="flex items-center gap-2 p-2 pl-3 rounded-full bg-card border border-border shadow-card flex-1">
-            <Filter className="h-4 w-4 text-accent shrink-0" />
-            <Select value={industry} onValueChange={(v) => setIndustry(v as Industry)}>
-              <SelectTrigger className="flex-1 rounded-full border-0 bg-secondary text-xs sm:text-sm">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {industries.map((c) => (
-                  <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+        {/* Filters + Sort */}
+        <div className="flex flex-col gap-3 mb-4 max-w-4xl mx-auto">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div className="flex items-center gap-2 p-2 pl-3 rounded-full bg-card border border-border shadow-card">
+              <Filter className="h-4 w-4 text-accent shrink-0" />
+              <Select value={industry} onValueChange={(v) => setIndustry(v as Industry)}>
+                <SelectTrigger className="flex-1 rounded-full border-0 bg-secondary text-xs sm:text-sm">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {industries.map((c) => (
+                    <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="flex items-center gap-2 p-2 pl-3 rounded-full bg-card border border-border shadow-card">
+              <Layers className="h-4 w-4 text-accent shrink-0" />
+              <Select value={type} onValueChange={(v) => setType(v as ProjectType)}>
+                <SelectTrigger className="flex-1 rounded-full border-0 bg-secondary text-xs sm:text-sm">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {types.map((t) => (
+                    <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="flex items-center gap-2 p-2 pl-3 rounded-full bg-card border border-border shadow-card">
+              <ArrowUpDown className="h-4 w-4 text-accent shrink-0" />
+              <Select value={sort} onValueChange={(v) => setSort(v as SortKey)}>
+                <SelectTrigger className="flex-1 rounded-full border-0 bg-secondary text-xs sm:text-sm">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {sorts.map((s) => (
+                    <SelectItem key={s.value} value={s.value}>Sort: {s.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
           </div>
-          <div className="flex items-center gap-2 p-2 pl-3 rounded-full bg-card border border-border shadow-card flex-1">
-            <Layers className="h-4 w-4 text-accent shrink-0" />
-            <Select value={type} onValueChange={(v) => setType(v as ProjectType)}>
-              <SelectTrigger className="flex-1 rounded-full border-0 bg-secondary text-xs sm:text-sm">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {types.map((t) => (
-                  <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+
+          {/* Summary + clear */}
+          <div className="flex flex-wrap items-center justify-between gap-2 px-1">
+            <div className="text-xs sm:text-sm text-muted-foreground">
+              {summaryParts.length > 0 ? (
+                <>
+                  <span className="text-foreground font-medium">Showing:</span>{" "}
+                  <span className="text-primary-glow">{summaryParts.join(" + ")}</span>
+                  <span className="text-muted-foreground"> · {filtered.length} project{filtered.length !== 1 ? "s" : ""}</span>
+                </>
+              ) : (
+                <span>Showing all {filtered.length} projects · Sorted by {labelOf(sorts, sort)}</span>
+              )}
+            </div>
+            {filtersActive && (
+              <Button variant="ghost" size="sm" onClick={clearFilters} className="h-8 text-xs">
+                <X className="h-3.5 w-3.5" /> Clear filters
+              </Button>
+            )}
           </div>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 md:gap-6 mb-12 md:mb-16 min-h-[200px]">
+        {/* Grid */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 md:gap-6 mb-6 mt-4 min-h-[200px]">
           {visible.map((p, i) => (
             <button
               key={p.name}
-              onClick={() => setActive(p)}
-              className="group relative text-left rounded-2xl overflow-hidden bg-card border border-border shadow-card hover:shadow-glow transition-smooth focus:outline-none focus:ring-2 focus:ring-primary"
+              onClick={() => openProject(p)}
+              className="group relative text-left rounded-2xl overflow-hidden bg-card border border-border shadow-card hover:shadow-glow transition-smooth focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
               style={{ animation: `fade-up 0.6s ${i * 0.08}s both` }}
             >
               <div className="aspect-[16/10] overflow-hidden bg-secondary relative">
@@ -199,6 +328,25 @@ export const DemoApp = () => {
           )}
         </div>
 
+        {/* Load more */}
+        {hasMore && (
+          <div className="flex justify-center mb-12 md:mb-16">
+            <Button
+              variant="outlineGlow"
+              size="lg"
+              onClick={() => setVisibleCount((c) => c + PAGE_SIZE)}
+            >
+              Load more ({filtered.length - visibleCount} remaining)
+            </Button>
+          </div>
+        )}
+        {!hasMore && filtered.length > PAGE_SIZE && (
+          <div className="text-center text-xs text-muted-foreground mb-12 md:mb-16">
+            You've reached the end · {filtered.length} projects shown
+          </div>
+        )}
+        {!hasMore && filtered.length <= PAGE_SIZE && <div className="mb-12 md:mb-16" />}
+
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6 max-w-4xl mx-auto p-5 md:p-8 rounded-2xl bg-card-gradient border border-border shadow-card">
           {features.map((f) => (
             <div key={f} className="flex gap-3 items-start">
@@ -214,13 +362,16 @@ export const DemoApp = () => {
         </div>
       </div>
 
-      <Dialog open={!!active} onOpenChange={(o) => !o && setActive(null)}>
+      {/* Project gallery modal */}
+      <Dialog open={!!active} onOpenChange={(o) => { if (!o) { setActive(null); setLightbox(false); } }}>
         <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto">
           {active && (
             <>
               <DialogHeader>
                 <DialogTitle className="font-display text-2xl">{active.name}</DialogTitle>
-                <DialogDescription>{active.tagline}</DialogDescription>
+                <DialogDescription>
+                  {active.tagline} · Use ← → keys to navigate
+                </DialogDescription>
               </DialogHeader>
               <div className="flex flex-wrap gap-1.5 mb-2">
                 {active.tags.map((t) => (
@@ -229,14 +380,63 @@ export const DemoApp = () => {
                   </span>
                 ))}
               </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                {active.gallery.map((src, i) => (
-                  <div key={i} className="rounded-xl overflow-hidden border border-border bg-secondary">
-                    <img src={src} alt={`${active.name} screen ${i + 1}`} className="w-full h-auto block" loading="lazy" />
-                  </div>
-                ))}
+
+              {/* Featured image */}
+              <div className="relative rounded-xl overflow-hidden border border-border bg-secondary">
+                <button
+                  onClick={() => setLightbox(true)}
+                  className="block w-full focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                  aria-label="Open full size view"
+                >
+                  <img
+                    src={active.gallery[activeIndex]}
+                    alt={`${active.name} screen ${activeIndex + 1}`}
+                    className="w-full max-h-[55vh] object-contain bg-background mx-auto"
+                  />
+                </button>
+                {active.gallery.length > 1 && (
+                  <>
+                    <button
+                      onClick={prev}
+                      aria-label="Previous screen"
+                      className="absolute left-2 top-1/2 -translate-y-1/2 p-2 rounded-full bg-background/80 backdrop-blur border border-border hover:bg-background transition-smooth focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                    >
+                      <ChevronLeft className="h-5 w-5" />
+                    </button>
+                    <button
+                      onClick={next}
+                      aria-label="Next screen"
+                      className="absolute right-2 top-1/2 -translate-y-1/2 p-2 rounded-full bg-background/80 backdrop-blur border border-border hover:bg-background transition-smooth focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                    >
+                      <ChevronRight className="h-5 w-5" />
+                    </button>
+                    <div className="absolute bottom-2 right-2 text-xs px-2 py-1 rounded-full bg-background/80 backdrop-blur border border-border">
+                      {activeIndex + 1} / {active.gallery.length}
+                    </div>
+                  </>
+                )}
               </div>
-              <div className="flex justify-center pt-2">
+
+              {/* Thumbnails */}
+              {active.gallery.length > 1 && (
+                <div className="grid grid-cols-4 sm:grid-cols-6 gap-2 mt-3">
+                  {active.gallery.map((src, i) => (
+                    <button
+                      key={i}
+                      onClick={() => setActiveIndex(i)}
+                      aria-label={`Show screen ${i + 1}`}
+                      aria-current={i === activeIndex}
+                      className={`rounded-lg overflow-hidden border transition-smooth focus:outline-none focus-visible:ring-2 focus-visible:ring-primary ${
+                        i === activeIndex ? "border-primary ring-1 ring-primary" : "border-border opacity-60 hover:opacity-100"
+                      }`}
+                    >
+                      <img src={src} alt="" className="w-full aspect-[16/10] object-cover object-top" loading="lazy" />
+                    </button>
+                  ))}
+                </div>
+              )}
+
+              <div className="flex justify-center pt-3">
                 <Button variant="hero" asChild>
                   <a href="#booking" onClick={() => setActive(null)}>
                     Build something similar <ArrowRight />
@@ -247,6 +447,52 @@ export const DemoApp = () => {
           )}
         </DialogContent>
       </Dialog>
+
+      {/* Lightbox for big single-image view */}
+      {active && lightbox && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-label={`${active.name} screen ${activeIndex + 1} full size`}
+          className="fixed inset-0 z-[100] bg-background/95 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in"
+          onClick={() => setLightbox(false)}
+        >
+          <button
+            onClick={(e) => { e.stopPropagation(); setLightbox(false); }}
+            aria-label="Close full size view"
+            className="absolute top-4 right-4 p-2 rounded-full bg-card border border-border hover:bg-secondary transition-smooth focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+          >
+            <X className="h-5 w-5" />
+          </button>
+          {active.gallery.length > 1 && (
+            <>
+              <button
+                onClick={(e) => { e.stopPropagation(); prev(); }}
+                aria-label="Previous screen"
+                className="absolute left-4 top-1/2 -translate-y-1/2 p-3 rounded-full bg-card border border-border hover:bg-secondary transition-smooth focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+              >
+                <ChevronLeft className="h-6 w-6" />
+              </button>
+              <button
+                onClick={(e) => { e.stopPropagation(); next(); }}
+                aria-label="Next screen"
+                className="absolute right-4 top-1/2 -translate-y-1/2 p-3 rounded-full bg-card border border-border hover:bg-secondary transition-smooth focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+              >
+                <ChevronRight className="h-6 w-6" />
+              </button>
+            </>
+          )}
+          <img
+            src={active.gallery[activeIndex]}
+            alt={`${active.name} screen ${activeIndex + 1}`}
+            className="max-w-full max-h-full object-contain rounded-lg shadow-elegant"
+            onClick={(e) => e.stopPropagation()}
+          />
+          <div className="absolute bottom-4 left-1/2 -translate-x-1/2 text-xs px-3 py-1.5 rounded-full bg-card border border-border">
+            {activeIndex + 1} / {active.gallery.length} · Click outside or press Esc to close
+          </div>
+        </div>
+      )}
     </section>
   );
 };
