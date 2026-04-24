@@ -16,7 +16,7 @@ export const Footer = () => (
       <div>
         <h5 className="font-display font-semibold mb-4 text-sm">Quick Links</h5>
         <ul className="space-y-2 text-sm text-muted-foreground">
-          {["Home", "Services", "Demo App", "About", "Contact"].map((l) => (
+          {["Home", "Services", "Our Work", "About", "Contact"].map((l) => (
             <li key={l}><a href={`#${l.toLowerCase().replace(" ", "")}`} className="hover:text-foreground transition-smooth">{l}</a></li>
           ))}
         </ul>

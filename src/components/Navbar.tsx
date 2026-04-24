@@ -6,7 +6,7 @@ import logo from "@/assets/trexolyte-logo.png";
 const links = [
   { label: "Home", href: "#home" },
   { label: "Services", href: "#services" },
-  { label: "Demo App", href: "#demo" },
+  { label: "Our Work", href: "#demo" },
   { label: "About", href: "#about" },
   { label: "Contact", href: "#contact" },
 ];
